@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="stylesheet" type="text/css" href="style.css"/>
+        <title>API DUS GURI</title>
+    </head>
+    <body>
+
+        <h1>Login</h1>
+        <input type="email" name="email" id="emailLogin">
+        <input type="text" name="password" id="passwordLogin">
+        <input type="button" value="login" onclick="login()">
+
+        <br>
+
+        <h1>Guris do CPOR</h1>
+        <ul id="list"></ul>
+
+        <hr>
+
+        <h2>Adicione um guri do CPOR</h2>
+
+        <form action="#">
+            <input type="number" placeholder="Número do CPOR" id="cpor">
+            <input type="text" placeholder="Nome" id="nome">
+            <input type="caracteristica" placeholder="Característica" id="caracteristica">
+            <input type="button" value="Adicionar soldado" onclick="post()" id="button">
+        </form>
+
+        <hr>
+
+        <h2>Edite o soldado</h2>
+
+        <form action="#">
+            <input type="number" placeholder="Número do CPOR" id="cporEdit">
+            <input type="text" placeholder="Nome" id="nomeEdit">
+            <input type="caracteristica" placeholder="Característica" id="caracteristicaEdit">
+            <input type="button" value="Editar soldado" onclick="editGuri()" id="buttonEdit">
+        </form>
+        
+    </body>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script>
+
+
+        let axiosConfig = {
+            headers: {
+                authorization: "Bearer " + localStorage.getItem("token") // o localStorage é um pedaço de memória que todo site possui para guardar informações do usuario
+            }
+        }
+
+
+        function login(){
+            let email = document.getElementById("emailLogin").value
+            let senha = document.getElementById("passwordLogin").value
+
+            let dados = {"email": email, "senha": senha}
+
+            axios.post("http://localhost:6969/auth", dados).then((res)=>{
+                
+                let token = res.data.token
+                localStorage.setItem("token", token)
+
+                axiosConfig.headers.authorization = "Bearer "+ localStorage.getItem("token")
+
+            }).catch((error)=>alert(error))
+        }
+
+        axios.get("http://localhost:6969/guris", axiosConfig).then((response)=>{ // o método get é uma promiss. Os parametros da promiss são o resolve e o reject
+            let guris =  response.data
+            console.log(response.data)                       // o resolve é a função anonima do then e o reject é a função anonima do catch
+            guris.forEach(guri => {
+                let lista = document.getElementById("list")
+                let item = document.createElement("li")
+                item.innerHTML = guri.cpor + ". "+ guri.nome+ ": "+guri.caracteristica
+                item.setAttribute("data-cpor", guri.cpor)
+                item.setAttribute("data-nome", guri.nome)
+                item.setAttribute("data-caracteristica", guri.caracteristica) // pode-se criar atributos customizaveis no html. Basta iniciar o nome com "data-"
+
+                let deletebutton = document.createElement("button")
+                deletebutton.innerHTML = "deletar"
+                deletebutton.setAttribute("onclick", "deleteGuri()")
+
+                let editbutton = document.createElement("button")
+                editbutton.innerHTML = "editar"
+                editbutton.setAttribute("onclick", "preencherForms()")
+
+                item.appendChild(deletebutton)
+                item.appendChild(editbutton)
+                lista.appendChild(item)
+            });
+
+        }).catch((error)=>{                                 // o argumento response possui 3 partes. a primeira é a importante, a segunda é o statuscode
+            console.log(error)                          // e a terceira eu nao sei o que é
+        })
+
+
+
+
+        function post(){
+            let cpor = document.getElementById("cpor").value
+            let nome = document.getElementById("nome").value
+            let caracteristica = document.getElementById("caracteristica").value
+
+            let guri = {
+                cpor: cpor,
+                nome: nome,
+                caracteristica: caracteristica
+            }
+
+            axios.post("http://localhost:6969/guri", guri, axiosConfig).then((response)=>{ // aqui, o post já adiciona diretamente o dado, pois ele vira req.body
+                if(response.status == 200){
+                    alert("Soldado adicionado")
+                }
+            }).catch(error =>{console.log(error)})
+        }
+
+
+        function deleteGuri(){
+            let clickedButton = event.target
+            let liFromButton = clickedButton.parentNode
+            let liCpor = liFromButton.getAttribute("data-cpor")
+            
+            axios.delete("http://localhost:6969/guri/"+liCpor, axiosConfig).then(response=>{
+
+                    alert("Esse soldado foi de base")
+                
+            }).catch(error=>{
+                console.log(error)
+            })
+
+        }
+
+
+
+        function preencherForms(){
+            let clickedButton = event.target
+            let liFromButton = clickedButton.parentNode
+            let liCpor = liFromButton.getAttribute("data-cpor")
+            let liNome = liFromButton.getAttribute("data-nome")
+            let liCaracteristica = liFromButton.getAttribute("data-caracteristica")
+
+            document.getElementById("cporEdit").value = liCpor
+            document.getElementById("nomeEdit").value = liNome
+            document.getElementById("caracteristicaEdit").value = liCaracteristica
+
+        }
+
+        function editGuri(){
+            let cpor = document.getElementById("cporEdit").value
+            let nome = document.getElementById("nomeEdit").value
+            let caracteristica = document.getElementById("caracteristicaEdit").value
+
+            let guri = {
+                cpor:cpor,
+                nome:nome,
+                caracteristica:caracteristica
+            }
+
+            axios.put("http://localhost:6969/guri/"+cpor, guri, axiosConfig).then(response=>{
+                alert("Soldado editado")
+            }).catch((error)=>console.log(error))
+
+            document.getElementById("cporEdit").value = ""
+            document.getElementById("nomeEdit").value = ""
+            document.getElementById("caracteristicaEdit").value = ""
+
+        }
+
+        // console.log(axios) 
+    </script>
+</html>
